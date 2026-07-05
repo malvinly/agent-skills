@@ -1,6 +1,6 @@
 # wiki-docs
 
-A documentation skill for **Claude Code** and **GitHub Copilot CLI**. Point it at a repository and it writes a navigable documentation to `.wiki-docs/`, then keeps it up to date as the code changes.
+A documentation skill for **Claude Code**, **GitHub Copilot CLI**, **OpenAI Codex CLI**, and **OpenCode**. Point it at a repository and it writes a navigable documentation to `.wiki-docs/`, then keeps it up to date as the code changes.
 
 This skill was inspired by [OpenWiki](https://github.com/langchain-ai/openwiki/). I needed something I could use directly inside AI coding tools, without having to run it through a separate CLI. It was built for my own use case specifically, so it reflects how I like documentation to be generated and maintained.
 
@@ -14,16 +14,21 @@ This skill was inspired by [OpenWiki](https://github.com/langchain-ai/openwiki/)
 
 ## Install
 
-One `SKILL.md` works for both tools.
+All four tools read the same `SKILL.md` — only the folder they look in differs.
 
-Per project (one copy, read by both tools):
+Per project:
 
-    .claude/skills/wiki-docs/SKILL.md
+    .claude/skills/wiki-docs/SKILL.md      # Claude Code, GitHub Copilot CLI, OpenCode
+    .agents/skills/wiki-docs/SKILL.md      # OpenAI Codex CLI, GitHub Copilot CLI, OpenCode
 
 Globally (copy the folder into each tool's home):
 
-    ~/.claude/skills/wiki-docs/     # Claude Code
-    ~/.copilot/skills/wiki-docs/    # GitHub Copilot CLI
+    ~/.claude/skills/wiki-docs/            # Claude Code, OpenCode
+    ~/.copilot/skills/wiki-docs/           # GitHub Copilot CLI
+    ~/.agents/skills/wiki-docs/            # OpenAI Codex CLI, GitHub Copilot CLI, OpenCode
+    ~/.config/opencode/skills/wiki-docs/   # OpenCode
+
+Only Claude Code and Codex need distinct homes: `.claude/skills/` covers Claude Code (also read by Copilot and OpenCode) and `.agents/skills/` covers Codex (also read by Copilot and OpenCode), so at most two copies cover all four tools.
 
 ## Usage
 
@@ -31,7 +36,9 @@ Globally (copy the folder into each tool's home):
     /wiki-docs init      # force a from-scratch generation
     /wiki-docs update    # force a surgical update
 
-You can also ask in natural language, for example "generate the wiki docs for this repo."
+The `/wiki-docs` command works in Claude Code and GitHub Copilot CLI. In Codex, invoke it from the `/skills` menu, with a `$wiki-docs` mention, or in natural language; OpenCode picks it up from the `/skills` menu or by matching the skill description.
+
+You can also ask in natural language in any of the four tools, for example "generate the wiki docs for this repo."
 
 ## How it works
 

@@ -13,8 +13,9 @@ You are wiki-docs, an expert technical writer, software architect, and product a
 Your job is to inspect the current repository and produce documentation in the `.wiki-docs/`
 directory that is excellent for both humans and future coding agents.
 
-This skill is harness-neutral: it runs on Claude Code and GitHub Copilot CLI. Where it names a
-capability (research subagents, a planning list, search tools), use your harness's equivalent.
+This skill is harness-neutral: it runs on any coding agent that supports the Agent Skills
+(`SKILL.md`) standard. Where it names a capability (research subagents, a planning feature, search
+tools), use your harness's equivalent.
 
 Ground every important claim in source files, existing docs, or git evidence you have inspected.
 Do not invent files, modules, APIs, business rules, or behavior.
@@ -49,8 +50,8 @@ existing `.wiki-docs/` pages against current source and use file modification ti
   unrelated repositories.
 
 ## Research subagents (large / multi-domain repos only)
-- If your harness supports read-only research subagents or background agents (e.g. Claude Code's
-  Task tool, Copilot CLI background agents), you may fan out 1-2 before writing for large repos with
+- If your harness supports read-only research subagents or background agents (parallel read-only
+  sub-tasks), you may fan out 1-2 before writing for large repos with
   independent domains; use 3-4 only when domains are clearly small/independent or when asked.
   Subagents inspect and summarize only — they must not write files or touch `.wiki-docs/`. The main
   agent synthesizes and performs all writes. If subagents aren't available, research inline. Do not
@@ -58,8 +59,8 @@ existing `.wiki-docs/` pages against current source and use file modification ti
 
 ## Planning
 - After discovery and before writing, plan the intended page list, the source evidence for each
-  page, and open questions. Track this using your harness's planning/task feature (Claude Code todo
-  list, Copilot CLI Plan Mode) or your working notes. Do not leave a plan file behind in `.wiki-docs/`.
+  page, and open questions. Track this using your harness's planning feature (a plan mode, or a
+  to-do/task checklist) or your working notes. Do not leave a plan file behind in `.wiki-docs/`.
 
 ## Git-history "why"
 - Use git where it explains *why* code exists, not just what. During init, inspect recent history

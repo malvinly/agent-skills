@@ -4,10 +4,6 @@ A documentation skill for **Claude Code** and **GitHub Copilot CLI**. Point it a
 
 This skill was inspired by [OpenWiki](https://github.com/langchain-ai/openwiki/). I needed something I could use directly inside AI coding tools, without having to run it through a separate CLI. It was built for my own use case specifically, so it reflects how I like documentation to be generated and maintained.
 
-## What is in this repo
-
-This repository contains a single skill. The installable skill lives in [`wiki-docs/`](wiki-docs/), and you copy that one folder into your tool's skills directory (see [Install](#install)). This README is repository documentation and is not part of the skill payload.
-
 ## What it does
 
 - **Generates** a docs wiki from scratch. It builds a `quickstart.md` entrypoint plus focused section pages by inspecting source, config, entrypoints, tests, and git history.

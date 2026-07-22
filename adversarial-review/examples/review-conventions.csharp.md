@@ -4,7 +4,7 @@ Copy this file to `<your-repo>/.claude/review-conventions.md` and edit. The adve
 skill reads it (if present) and passes a summary to every persona. Everything here is
 *additive* review depth — the skill works without it.
 
-<!-- Optional: pin the persona model so the skill stops asking. One of: inherit, sonnet, haiku -->
+<!-- Optional: pin the persona model so the skill stops asking. One of: inherit, sonnet, opus -->
 persona-model: inherit
 
 ## Language pitfalls to hunt (C#/.NET)

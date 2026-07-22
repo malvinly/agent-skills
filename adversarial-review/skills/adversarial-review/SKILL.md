@@ -33,7 +33,7 @@ They take the form `[personas] [scope]`:
 Read the conventions file first (Step 4) — if it pins `persona-model:`, skip question 2. Ask ONE AskUserQuestion containing:
 
 1. **"Which personas should review this change?"** — options: "All five (Recommended)"; "Correctness trio — saboteur, test-skeptic, devils-advocate"; "Security only". Any other subset can be typed via Other (accept persona arg names, comma- or space-separated).
-2. **"Which model should the personas run on?"** — options: "Inherit session model (Recommended)"; "Sonnet — faster and cheaper, five parallel reviewers add up"; "Haiku — smoke-test speed, shallowest findings".
+2. **"Which model should the personas run on?"** — options: "Inherit session model (Recommended)"; "Sonnet — faster and cheaper, five parallel reviewers add up"; "Opus — deepest findings, five parallel reviewers cost accordingly".
 
 ## Step 3 — Resolve scope
 
@@ -47,7 +47,7 @@ Capture the diff text and the touched-file list. If the diff exceeds ~400 lines,
 ## Step 4 — Conventions pickup
 
 Find the repo root (`git rev-parse --show-toplevel`; else the working directory). Check for, in order:
-- `<root>/.claude/review-conventions.md` — repo-local review depth (language pitfalls, project invariants, severity calibration). May pin `persona-model: <sonnet|haiku|inherit>` on a line by itself.
+- `<root>/.claude/review-conventions.md` — repo-local review depth (language pitfalls, project invariants, severity calibration). May pin `persona-model: <sonnet|opus|inherit>` on a line by itself.
 - `<root>/CLAUDE.md` — extract only conventions relevant to reviewing (style rules, architectural constraints), not task instructions.
 
 Summarize what you find into a CONVENTIONS block (≤ 30 lines). If nothing exists, the block is empty — the review must work fine without it.

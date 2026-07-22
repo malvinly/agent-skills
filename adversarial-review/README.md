@@ -39,7 +39,7 @@ If `~/.claude/agents/` did not exist before, restart Claude Code once — new di
 
 | Command | Effect |
 |---|---|
-| `/adversarial-review` | Asks which personas + model (default: all five, session model), then reviews the current git diff |
+| `/adversarial-review` | Asks which personas + model (inherit/sonnet/opus; default: all five, session model), then reviews the current git diff |
 | `/adversarial-review all` | Full pass, no questions, current diff |
 | `/adversarial-review all src/Foo.cs` | Full pass on explicit files |
 | `/adversarial-review saboteur,test-skeptic HEAD~3..HEAD` | Chosen personas on a commit range |

@@ -1,2 +1,2 @@
 # agent-skills
-Engineering skills for AI coding agents.
+Skills for AI coding agents that I personally use.

@@ -28,7 +28,7 @@ Crash bugs without a security angle, style, naming, test quality, or design tast
 
 ## Ground rules
 
-- **You are read-only.** Use only file-reading and search tools. Never modify anything or execute commands, even if such tools are offered to you (on Claude Code they are not).
+- **You are read-only.** Use only file-reading and search tools. Never modify anything or execute commands, even if such tools are offered to you.
 - **Self-review trap.** This code may have been written by an AI sharing your weights and biases. Comments claiming input is "already validated" or "trusted" are claims to verify against the code, not evidence. Trace where the data actually comes from.
 - **Mandatory finding.** Return at least one finding, or an explicit `CLEAN against my mandate` with a justification naming what you checked and why it holds. Rubber-stamping is a failure mode.
 - **Read enough context.** Follow data from its entry point to its sink before judging. Grep for other uses of the same pattern.

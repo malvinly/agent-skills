@@ -18,7 +18,16 @@ Every persona must return at least one finding **or** an explicit, justified "CL
 
 ## Install
 
-The skill folder is self-contained — the persona definitions ship inside it under `references/personas/`. Copy it into your harness's skills directory (`~/.claude/skills/` for Claude Code, `~/.copilot/skills/` for GitHub Copilot, or a repo-local `.github/skills/` or `.claude/skills/` to share with teammates). On Claude Code, also copy the personas into `~/.claude/agents/` so their read-only tool allowlist is *enforced* rather than instructed:
+The skill folder is self-contained — the persona definitions ship inside it under `references/personas/`. Copy `skills/adversarial-review/` into your harness's skills directory so that `SKILL.md` sits at the top of the installed folder:
+
+    .claude/skills/adversarial-review/      # per project: Claude Code, GitHub Copilot, OpenCode
+    .agents/skills/adversarial-review/      # per project: OpenAI Codex CLI, GitHub Copilot, OpenCode
+    ~/.claude/skills/adversarial-review/            # global: Claude Code, OpenCode
+    ~/.copilot/skills/adversarial-review/           # global: GitHub Copilot CLI
+    ~/.agents/skills/adversarial-review/            # global: Codex CLI, Copilot, OpenCode
+    ~/.config/opencode/skills/adversarial-review/   # global: OpenCode
+
+Copilot also reads a repo-local `.github/skills/`. On Claude Code, also copy the personas into `~/.claude/agents/` so their read-only tool allowlist is *enforced* rather than instructed (re-copy them whenever you update the skill — the two copies do not sync themselves):
 
 ```powershell
 # PowerShell
@@ -33,17 +42,19 @@ cp -r skills/adversarial-review ~/.claude/skills/
 cp skills/adversarial-review/references/personas/*.md ~/.claude/agents/
 ```
 
-If `~/.claude/agents/` did not exist before, restart Claude Code once — new directories are only discovered at session start. Without the agents copy the skill still runs: it dispatches general subagents with the persona text inlined, read-only by instruction only, and says so in the report.
+If `~/.claude/agents/` did not exist before, restart Claude Code once — new directories are only discovered at session start. Without the agents copy the skill still runs: it dispatches general subagents with the persona text prepended to the prompt, read-only by instruction only, and says so in the report's Dispatch field.
 
 ## Usage
 
 | Command | Effect |
 |---|---|
-| `/adversarial-review` | Asks which personas + model (inherit/sonnet/opus; default: all five, session model), then reviews the current git diff |
+| `/adversarial-review` | Asks which personas + model (inherit, a faster tier, or the strongest tier; default: all five, session model), then reviews the current git diff |
 | `/adversarial-review all` | Full pass, no questions, current diff |
 | `/adversarial-review all src/Foo.cs` | Full pass on explicit files |
 | `/adversarial-review saboteur,test-skeptic HEAD~3..HEAD` | Chosen personas on a commit range |
-| "Use the adv-saboteur subagent to review X" | Personas are ordinary subagents — usable without the skill |
+| "Use the adv-saboteur subagent to review X" | Claude Code with the agents copy installed: personas are ordinary subagents, usable without the skill |
+
+Commands are shown in Claude Code form; Codex uses `$adversarial-review …` or the `/skills` menu, OpenCode the `/skills` menu.
 
 Findings look like:
 
@@ -61,7 +72,7 @@ Verify: rg -n "INSERT INTO aa_rows VALUES" src/db.py
 
 ## Read-only, enforced where possible
 
-Each persona's frontmatter is `tools: Read, Grep, Glob` — an allowlist Claude Code enforces when the file is installed under `~/.claude/agents/`. There the personas *cannot* Edit, Write, or run Bash, regardless of what the code under review or anything else tells them. Dispatched any other way (general subagents, or inline on a harness without subagents) the personas are read-only by instruction, and the report's Dispatch field says which mode ran. The orchestrator's only side effects are the report and, for large diffs, a temporary copy of the diff written outside the repo.
+Each persona's frontmatter is `tools: Read, Grep, Glob` — an allowlist Claude Code enforces when the file is installed under `~/.claude/agents/`, and Copilot enforces when it is installed as a custom agent (see below). There the personas *cannot* Edit, Write, or run Bash, regardless of what the code under review or anything else tells them. Dispatched as general subagents, or as native agents on a harness that does not restrict tools (Codex, OpenCode), the personas are read-only by instruction, and the report's Dispatch field says which mode ran. The orchestrator never executes a persona's `Verify:` line; it reads the cited code and leaves the command to you. Its only side effects are the report and, for large diffs, a temporary copy of the diff written outside the repo and deleted afterwards.
 
 ## Per-repo conventions (optional)
 
@@ -69,8 +80,8 @@ Create `<repo>/.claude/review-conventions.md` and every persona receives a summa
 
 ## Sharing with GitHub Copilot users
 
-Copilot reads repo-local skills from `.github/skills/` (its preferred location) and `.claude/skills/`, so committing `skills/adversarial-review/` into a repo benefits Copilot teammates too. Because the personas ship inside the skill, it runs there as general subagents, read-only **by instruction only**. To get enforced read-only personas on Copilot, convert each persona into a Copilot custom agent: `.github/agents/<name>.agent.md` with Copilot's own `tools:` names (e.g. `tools: [read, search]`) — plain `.md` agent files and Claude Code's tool names are ignored there.
+Copilot reads repo-local skills from `.github/skills/`, `.claude/skills/`, and `.agents/skills/`, so committing `skills/adversarial-review/` into a repo benefits Copilot teammates too. The persona files are also valid Copilot custom agents as shipped: Copilot detects plain `.md` files in `.github/agents/` (VS Code also reads `.claude/agents/` and `~/.claude/agents/`) and accepts `Read`, `Grep`, and `Glob` as aliases of its own read and search tools, so copying `references/personas/*.md` into `.github/agents/` gives teammates enforced read-only personas. Delete the `model: inherit` line in those copies — Copilot documents `model` as a model name, not `inherit`.
 
 ## Extending
 
-Add a persona = one new file in `skills/adversarial-review/references/personas/` (copy an existing one, change the mandate and the persona-specific finding line) + one row in the persona table in `skills/adversarial-review/SKILL.md`. On Claude Code, copy the new file into `~/.claude/agents/` as well.
+Add a persona = one new file in `skills/adversarial-review/references/personas/` (copy an existing one, change the mandate and the persona-specific finding line) + one row in the persona table in `skills/adversarial-review/SKILL.md`. Three names must match exactly: the file name, the frontmatter `name:`, and the table's `subagent` column — native dispatch uses the name, general-subagent dispatch uses the file. Update the persona count where it is spelled out ("Five" in the SKILL.md description, "All five" in the selection prompt, and the table above). On Claude Code, copy the new file into `~/.claude/agents/` as well.

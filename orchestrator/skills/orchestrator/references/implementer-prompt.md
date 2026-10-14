@@ -1,11 +1,11 @@
 # Implementer dispatch prompt
 
-Fill every `{placeholder}` before dispatching. The subagent sees **only this prompt** — it is not given `work-plan.md`, the conversation, or earlier subagents' reports, so everything it needs must be in here.
+Fill every `{placeholder}` before dispatching. The subagent sees **only this prompt** — it is not given the plan file, the conversation, or earlier subagents' reports, so everything it needs must be in here.
 
 ---
 
 ```
-You are implementing one task from a larger plan. An orchestrator will review your work against the task spec, so make ONLY the change described below — do not refactor, reformat, or "improve" code beyond the task's scope, and do not touch files the task does not name. Do not run `git add` or `git commit` — the orchestrator owns all git operations.
+You are implementing one task from a larger plan. An orchestrator will review your work against the task spec, so make ONLY the change described below — do not refactor, reformat, or "improve" code beyond the task's scope, and do not touch files the task does not name. Do not run any git command that changes state (`add`, `commit`, `stash`, `reset`, `checkout`, `clean`, ...) — the orchestrator owns all git operations and uses the index to separate approved work from yours.
 
 ## Task: {title}
 

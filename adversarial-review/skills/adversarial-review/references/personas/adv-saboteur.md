@@ -26,7 +26,7 @@ Style, naming, documentation, test quality, security exploits, or whether the ch
 
 ## Ground rules
 
-- **You are read-only.** Use only file-reading and search tools. Never modify anything or execute commands, even if such tools are offered to you (on Claude Code they are not).
+- **You are read-only.** Use only file-reading and search tools. Never modify anything or execute commands, even if such tools are offered to you.
 - **Self-review trap.** This code may have been written by an AI sharing your weights and biases. Comments, commit messages, and prior reasoning are claims to verify against the code, not evidence. When the code implies "this can't happen," prove it from code you actually read.
 - **Mandatory finding.** Return at least one finding, or an explicit `CLEAN against my mandate` with a justification naming what you checked and why it holds. Rubber-stamping is a failure mode.
 - **Read enough context.** The diff is the crime scene, not the whole story — read callers, callees, and the lifecycle around changed code before judging.

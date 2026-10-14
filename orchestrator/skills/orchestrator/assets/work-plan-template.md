@@ -1,7 +1,7 @@
 # Work plan: {short title of the overall change}
 
 Source: {"synthesized from conversation on YYYY-MM-DD" or path of the original plan}
-Branch: {branch name} · Commit policy: {e.g. single commit at end}
+Branch: {branch name} · Base commit: {git rev-parse HEAD at run start} · Commit policy: {e.g. single commit at end}
 Full verification: `{command run once after all tasks, e.g. build + full test suite}` → {expected result}
 
 ## Goal
@@ -33,7 +33,7 @@ Full verification: `{command run once after all tasks, e.g. build + full test su
 # Work plan: CSV export for ReportService
 
 Source: synthesized from conversation on 2026-08-03
-Branch: main · Commit policy: single commit at end
+Branch: main · Base commit: 3f2a9c1 · Commit policy: single commit at end
 Full verification: `dotnet build MyApp.sln && dotnet test tests/MyApp.Tests` → build succeeds, all tests pass
 
 ## Goal

@@ -1,7 +1,7 @@
 ---
 name: orchestrator
 description: >
-  Implement an already-decided plan by chunking it into tasks, dispatching implementer subagents, and reviewing every diff in the main session before accepting. For medium-to-large multi-step coding work only (e.g. a plan produced by a planning or interview skill), and only when the user explicitly invokes /orchestrator — never auto-trigger. Not for single-file or trivial changes.
+  Implement an already-decided plan by chunking it into tasks, dispatching implementer subagents, and reviewing every diff in the main session before accepting. For medium-to-large multi-step coding work only (e.g. a plan produced by a planning or interview skill), and only when the user explicitly invokes this skill by name — never auto-trigger. Not for single-file or trivial changes.
 disable-model-invocation: true
 ---
 
@@ -14,7 +14,7 @@ This skill is harness-neutral: it runs on any coding agent that supports the Age
 ## Role split
 
 - **Main session (you):** orchestrator, reviewer, final approver. Never spawn a reviewer subagent — review means *you* reading the diff and re-running verification. Subagents can be wrong about their own success.
-- **Implementer subagents:** one fresh subagent per task. They start with no context — they are not given `work-plan.md`, the conversation, or earlier subagents' reports — so every dispatch prompt must be self-contained.
+- **Implementer subagents:** one fresh subagent per task. They start with no context — they are not given the plan file, the conversation, or earlier subagents' reports — so every dispatch prompt must be self-contained.
 
 ## Workflow
 
@@ -27,7 +27,7 @@ Announce that orchestrator is active. Size up the work first: if it is trivially
 - **User pointed at an existing plan file:** use that file. Never delete it.
 - **Plan lives in conversation:** synthesize it into `work-plan.md` at the repo root using `assets/work-plan-template.md`, show it to the user, and get confirmation before dispatching anything.
 
-Whether synthesized or supplied, every task must carry every field in the template, and the plan header must state a **full verification** command for the whole change (run in step 6). Fill any gap from the conversation or ask the user before dispatching anything. Change descriptions must be self-contained because the subagent sees only its dispatch prompt.
+Whichever it is, that file is **the plan file** for the rest of this workflow: checkbox ticks, discoveries, and gap-filling are written into it, it is never staged or committed, and it is exempt from the file-scope check. Every task must carry every field in the template, and the plan header must state a **full verification** command for the whole change (run in step 6) and the **base commit** (`git rev-parse HEAD` at the start of the run). Fill any gap from the conversation or ask the user before dispatching anything. Change descriptions must be self-contained because the subagent sees only its dispatch prompt.
 
 ### 3. Model selection — ask and wait
 
@@ -36,6 +36,8 @@ Before dispatching anything, ask the user which models to use for implementer su
 ### 4. Branch and commit confirmation
 
 State the current branch (`git branch --show-current`) so the user can catch a mistake, and state the default git policy: **work on the current branch, one commit at the end after final review.** Proceed with the default unless the user overrides (e.g. "commit per task", "use a new branch"). Never enforce anything mechanically — this is a confirmation, not a gate.
+
+The working tree and index must be clean before the first dispatch: `git status --porcelain` shows nothing except the plan file. Review isolation (step 5) and the final commit (step 6) both assume that everything staged was approved by this run. If anything else is dirty, list it and ask the user to commit or stash it first. On Codex, note that the default sandbox keeps `.git` read-only, so staging and committing need the git directory made writable or an approval per git write.
 
 ### 5. Task loop
 
@@ -47,7 +49,7 @@ For each task:
 2. **Read the status code** that opens the subagent's report and respond per the status protocol below. A report with no status code is treated as `DONE_WITH_CONCERNS`.
 3. **Review in the main session** — read `references/review-checklist.md` and follow it: read the actual unstaged diff (earlier approved tasks are already staged, so it shows only this task's work), re-run the verification command yourself, check spec compliance first, then code quality.
 4. **On problems**, dispatch a follow-up subagent — same template and status protocol, with the specific fix feedback as the change description — then re-review.
-5. **On approval**, stage the task's files (`git add <files>` — never `work-plan.md`) so approved work is separated from the next task's diff, tick the task's checkboxes in `work-plan.md`, and record any reusable discoveries (codebase quirks, patterns, gotchas) to inject into later dispatch prompts.
+5. **On approval**, stage everything you approved for the task — its listed files plus any extra change the user accepted during review, renames and deletions included — with `git add <paths>` (never the plan file), so approved work is separated from the next task's diff. Then tick the task's checkboxes in the plan file and record any reusable discoveries (codebase quirks, patterns, gotchas) to inject into later dispatch prompts.
 
 ### Status protocol
 
@@ -57,16 +59,16 @@ Every implementer report must begin with one of these codes:
 |---|---|---|
 | `DONE` | Implemented; verification passed | Review as normal — verify independently, never take the report on trust |
 | `DONE_WITH_CONCERNS` | Implemented, but flagging something | Review with the flagged concern front of mind |
-| `NEEDS_CONTEXT` | Cannot proceed without more information | Gather what is missing (investigate in the main session if needed), record it under Discoveries in `work-plan.md`, then re-dispatch a fresh subagent with that context added. A second `NEEDS_CONTEXT` on the same task after context was supplied → treat as `BLOCKED` |
+| `NEEDS_CONTEXT` | Cannot proceed without more information | Gather what is missing (investigate in the main session if needed), record it under Discoveries in the plan file, then re-dispatch a fresh subagent with that context added. A second `NEEDS_CONTEXT` on the same task after context was supplied → treat as `BLOCKED` |
 | `BLOCKED` | Cannot complete the task | Split the task, upgrade the model, or stop and ask the user. Never re-dispatch unchanged |
 
 ### 6. Final review
 
-After all tasks are approved: review the whole cumulative diff (`git diff --cached`), run the plan's full verification command, then commit the staged changes with a summary message — plain `git commit`, never `git commit -a` or `git add -A`, which would sweep `work-plan.md` into the commit. Under a per-task commit policy (step 4), commit the staged files the same way after each approval instead.
+After all tasks are approved: review the whole cumulative diff — `git diff --cached` under the default policy, `git diff <base commit>..HEAD` under a per-task commit policy — and run the plan's full verification command. Before committing, confirm `git status --short` shows no unstaged or untracked entries other than the plan file (staged entries are the work about to be committed): anything else means the commit would not match what you just verified, so stop and resolve it. Then commit with `git commit -m "<summary>"` — never `git commit -a` or `git add -A`, which would sweep the plan file into the commit. Under a per-task commit policy, only the commit step moves: commit the staged files the same way after each task's approval; the final cumulative review and full verification still run.
 
 ### 7. Cleanup
 
-Delete `work-plan.md` only after the commit succeeds (under a per-task commit policy: after the final task's commit), and only if this run created it. On abort or block, leave it in place — together with the staged and committed work it is the resume state — and tell the user to resume by re-invoking `/orchestrator work-plan.md` (completed tasks stay checked off and their files stay staged).
+Delete the plan file only after the final commit succeeds, and only if the orchestrator synthesized it (its `Source:` header says so — this holds on a resumed run too). A user-supplied plan is never deleted. On abort or block, leave it in place — together with the staged and committed work it is the resume state — and tell the user to resume by re-invoking `/orchestrator <plan file>` (completed tasks stay checked off and their files stay staged).
 
 ### Stop and ask the user whenever
 

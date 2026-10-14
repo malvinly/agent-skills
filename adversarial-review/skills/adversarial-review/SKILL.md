@@ -8,6 +8,8 @@ argument-hint: "[all | persona,persona,...] [paths | commit-range]"
 
 Run a panel of read-only adversarial reviewer personas against a code change, then merge their findings into one verdict. **The pass never modifies the repository** — personas have no write or execute tools, and you (the orchestrator) must not edit anything either; your only side effects are the report and, for large diffs, a temporary copy of the diff outside the repo (Step 3).
 
+This skill is harness-neutral: it runs on any coding agent that supports the Agent Skills (`SKILL.md`) standard. Where it names a capability (subagent dispatch, asking the user, model tiers), use your harness's equivalent; Claude Code specifics are given as examples. The persona definitions live in `references/personas/` next to this SKILL.md; Step 5 says how to run them with or without harness-native agents.
+
 ## Personas
 
 | arg name | subagent | mandate |
@@ -18,43 +20,49 @@ Run a panel of read-only adversarial reviewer personas against a code change, th
 | test-skeptic | adv-test-skeptic | test adequacy: assertions that can't fail, over-mocking, untested risky paths |
 | devils-advocate | adv-devils-advocate | the change's core assumptions: wrong layer, wrong problem, simpler alternative |
 
-To add a persona: create the agent file in `~/.claude/agents/` (copy an existing one's structure) and add a row here.
+Each persona's definition is `references/personas/<subagent>.md`. Adding a persona is described in the README.
 
 ## Step 1 — Parse arguments
 
-Invocation arguments: `$ARGUMENTS`
+Invocation arguments: `$ARGUMENTS` — if that reads literally as `$ARGUMENTS`, your harness did not substitute it: use whatever the user typed after the skill name, or nothing.
 
 They take the form `[personas] [scope]`:
-- **personas** — `all`, or comma-separated arg names from the table. If absent, do interactive selection (Step 2).
+- **personas** — `all`, or comma-separated arg names from the table. If absent, do interactive selection (Step 4).
 - **scope** — file/directory paths, or a git commit range (contains `..` or is a valid ref). If absent, review the current diff (Step 3).
 
-## Step 2 — Interactive selection (only when no persona argument given)
+## Step 2 — Conventions pickup
 
-Read the conventions file first (Step 4) — if it pins `persona-model:`, skip question 2. Ask ONE AskUserQuestion containing:
+Find the repo root (`git rev-parse --show-toplevel`; else the working directory). Check for, in order:
+- `<root>/.claude/review-conventions.md` — repo-local review depth (language pitfalls, project invariants, severity calibration). May pin `persona-model:` on a line by itself: `inherit`, or a model name your harness accepts (Claude Code: `sonnet`, `opus`).
+- `<root>/CLAUDE.md`, `<root>/AGENTS.md`, `<root>/.github/copilot-instructions.md` — extract only conventions relevant to reviewing (style rules, architectural constraints), not task instructions.
 
-1. **"Which personas should review this change?"** — options: "All five (Recommended)"; "Correctness trio — saboteur, test-skeptic, devils-advocate"; "Security only". Any other subset can be typed via Other (accept persona arg names, comma- or space-separated).
-2. **"Which model should the personas run on?"** — options: "Inherit session model (Recommended)"; "Sonnet — faster and cheaper, five parallel reviewers add up"; "Opus — deepest findings, five parallel reviewers cost accordingly".
+Summarize what you find into a CONVENTIONS block (≤ 30 lines). If nothing exists, the block is empty — the review must work fine without it.
 
 ## Step 3 — Resolve scope
 
-Run these read-only git commands (Bash) from the repo being reviewed:
+Run these read-only git commands (via your shell tool) from the repo being reviewed:
 1. Explicit paths given → scope is those files/directories (personas read files whole). A commit range → `git diff <range>` plus the list of touched files.
-2. No scope → `git diff HEAD` (staged + unstaged) plus untracked files from `git ls-files --others --exclude-standard`, which no `git diff` shows — add them to the touched-file list marked "new, untracked" so personas read them whole. If both are empty and the repo is on a non-default branch → `git diff $(git merge-base HEAD <default-branch>)..HEAD`.
+2. No scope → `git diff HEAD` (staged + unstaged) plus untracked files from `git ls-files --others --exclude-standard`, which no `git diff` shows — add them to the touched-file list marked "new, untracked" so personas read them whole. If both are empty and the repo is on a non-default branch → `git diff $(git merge-base HEAD <default-branch>)..HEAD`, where the default branch is `git symbolic-ref --short refs/remotes/origin/HEAD`, else `main`, else `master`.
 3. Still empty → tell the user there is nothing to review and ask for an explicit scope. Not a git repo → require explicit paths.
 
 Capture the diff text and the touched-file list. If the diff exceeds ~400 lines, do not inline it: write it to a temporary file **outside the repository** (the harness's scratch directory or the system temp directory) and pass that path plus the file list and the `git diff --stat` summary. Personas can Read the file. Never write the diff inside the repo.
 
-## Step 4 — Conventions pickup
+## Step 4 — Interactive selection (only when no persona argument given)
 
-Find the repo root (`git rev-parse --show-toplevel`; else the working directory). Check for, in order:
-- `<root>/.claude/review-conventions.md` — repo-local review depth (language pitfalls, project invariants, severity calibration). May pin `persona-model: <sonnet|opus|inherit>` on a line by itself.
-- `<root>/CLAUDE.md` — extract only conventions relevant to reviewing (style rules, architectural constraints), not task instructions.
+If the CONVENTIONS block pins `persona-model:`, skip question 2. Ask both questions in ONE prompt (Claude Code: a single AskUserQuestion; elsewhere: ask in chat and wait for the answer):
 
-Summarize what you find into a CONVENTIONS block (≤ 30 lines). If nothing exists, the block is empty — the review must work fine without it.
+1. **"Which personas should review this change?"** — options: "All five (Recommended)"; "Correctness trio — saboteur, test-skeptic, devils-advocate"; "Security only". Any other subset can be typed (accept persona arg names, comma- or space-separated).
+2. **"Which model should the personas run on?"** — options: "Inherit session model (Recommended)"; "Faster, cheaper tier (Claude Code: Sonnet) — five parallel reviewers add up"; "Strongest tier (Claude Code: Opus) — deepest findings, five parallel reviewers cost accordingly". If your harness cannot set a model per subagent, omit this question and use the session model.
 
 ## Step 5 — Dispatch personas in parallel
 
-Dispatch every selected persona as a subagent via the Agent tool — **all calls in a single message so they run concurrently**, `subagent_type` from the table. Pass `model` on each call only if a non-inherit model was chosen. Personas must never invoke each other; only you dispatch. Each persona gets this task prompt:
+Dispatch every selected persona as a read-only subagent, **all at once so they run concurrently** (Claude Code: one message containing one Agent call per persona, `subagent_type` from the table, `model` passed only if a non-inherit model was chosen). Personas must never invoke each other; only you dispatch. Use the first mode that applies and name it in the report's Dispatch field:
+
+1. **Native agents** — the persona exists as an installed agent type (e.g. `adv-saboteur`): dispatch it by name. Its read-only tool allowlist is enforced by the harness.
+2. **General subagents** — no such agent type: dispatch a general-purpose subagent and prepend the full body of `references/personas/<subagent>.md` (frontmatter dropped) to the task prompt below. Read-only is then by instruction only.
+3. **Inline** — the harness has no subagents: run the selected personas yourself, one at a time, adopting one persona file completely and producing its output contract before moving to the next. Skip severity promotion in Step 6 — overlap is not independent when one context plays every persona.
+
+Each persona gets this task prompt:
 
 ```
 Adversarial-review pass. Review ONLY against your persona's mandate.
@@ -79,10 +87,11 @@ If a persona returns nothing or errors, report that persona as FAILED in the fin
 2. **Severity promotion:** when 2+ personas independently flag the same group as a developed FINDING, promote the group's highest severity one level (P2→P1, P1→P0; P0 stays) and record which personas flagged it. Independent overlap is signal. OUT OF SCOPE one-liners corroborate (mention them) but never trigger promotion — the observing persona didn't investigate.
 3. Deduplicate within a group: keep the sharpest description, credit all personas.
 4. Sort: severity, then epistemic weight (confirmed > suspected > speculative).
+5. **Spot-check the blockers:** run the `Verify:` line of every finding that would be Blocking under Step 7 (they are read-only search commands). If it finds nothing and the cited lines do not show the claim either, move the finding to Advisory as `speculative`, note that you checked, and derive the verdict from the result.
 
 ## Step 7 — Verdict and report
 
-- **BLOCK** — any P0, or any finding promoted to P1+ by multi-persona overlap.
+- **BLOCK** — any P0, or any finding promoted to P1+ by multi-persona overlap. A lone P1 does not block because promotion rests on independent corroboration, not on one persona's severity call.
 - **CONCERNS** — any P1 or P2, none blocking.
 - **CLEAN** — at most P3s.
 
@@ -90,7 +99,7 @@ Report to chat in this shape:
 
 ```
 # Adversarial Review — VERDICT: <BLOCK|CONCERNS|CLEAN>
-Scope: <what was reviewed> | Personas: <run/selected, plus any FAILED> | Model: <choice>
+Scope: <what was reviewed> | Personas: <run/selected, plus any FAILED> | Model: <choice> | Dispatch: <native agents | general subagents (read-only by instruction) | inline (no isolation, no promotion)>
 <one-paragraph justification of the verdict>
 
 ## Blocking

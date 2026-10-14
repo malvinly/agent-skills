@@ -1,6 +1,6 @@
 # Implementer dispatch prompt
 
-Fill every `{placeholder}` before dispatching. The subagent sees **only this prompt** — it cannot read `work-plan.md`, the conversation, or earlier subagents' reports, so everything it needs must be in here.
+Fill every `{placeholder}` before dispatching. The subagent sees **only this prompt** — it is not given `work-plan.md`, the conversation, or earlier subagents' reports, so everything it needs must be in here.
 
 ---
 

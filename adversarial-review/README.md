@@ -1,6 +1,6 @@
 # adversarial-review
 
-Adversarial multi-persona code review for Claude Code. Five hostile reviewer personas — each with a separate mandate and **no ability to modify anything** — attack a change in parallel. Their findings are merged, cross-persona overlap promotes severity, and the pass ends in a single **BLOCK / CONCERNS / CLEAN** verdict.
+Adversarial multi-persona code review, built for Claude Code and portable to any harness that supports Agent Skills. Five hostile reviewer personas — each with a separate mandate and **no ability to modify anything** — attack a change in parallel. Their findings are merged, cross-persona overlap promotes severity, and the pass ends in a single **BLOCK / CONCERNS / CLEAN** verdict.
 
 Plain markdown files only. No plugin runtime, no npm packages, no second CLI — nothing to route through an internal feed.
 
@@ -18,22 +18,22 @@ Every persona must return at least one finding **or** an explicit, justified "CL
 
 ## Install
 
-Copy two directories (both are plain `.md` files):
+The skill folder is self-contained — the persona definitions ship inside it under `references/personas/`. Copy it into your harness's skills directory (`~/.claude/skills/` for Claude Code, `~/.copilot/skills/` for GitHub Copilot, or a repo-local `.github/skills/` or `.claude/skills/` to share with teammates). On Claude Code, also copy the personas into `~/.claude/agents/` so their read-only tool allowlist is *enforced* rather than instructed:
 
 ```powershell
 # PowerShell
-Copy-Item agents\*.md "$HOME\.claude\agents\"
 Copy-Item skills\adversarial-review "$HOME\.claude\skills\" -Recurse
+Copy-Item skills\adversarial-review\references\personas\*.md "$HOME\.claude\agents\"
 ```
 
 ```bash
 # bash / WSL
 mkdir -p ~/.claude/agents ~/.claude/skills
-cp agents/*.md ~/.claude/agents/
 cp -r skills/adversarial-review ~/.claude/skills/
+cp skills/adversarial-review/references/personas/*.md ~/.claude/agents/
 ```
 
-If `~/.claude/agents/` did not exist before, restart Claude Code once — new directories are only discovered at session start. Why two directories: persona files must live in `~/.claude/agents/` because that is the only place their `tools:` allowlist (the read-only *enforcement*) is honored.
+If `~/.claude/agents/` did not exist before, restart Claude Code once — new directories are only discovered at session start. Without the agents copy the skill still runs: it dispatches general subagents with the persona text inlined, read-only by instruction only, and says so in the report.
 
 ## Usage
 
@@ -59,18 +59,18 @@ Verify: rg -n "INSERT INTO aa_rows VALUES" src/db.py
 - **Promotion:** when 2+ personas independently flag the same code, severity is promoted one level. Independent overlap is signal.
 - **Verdict:** BLOCK (any P0 or promoted P1+) / CONCERNS (any P1–P2) / CLEAN.
 
-## Read-only, enforced
+## Read-only, enforced where possible
 
-Each persona's frontmatter is `tools: Read, Grep, Glob` — an allowlist enforced by Claude Code itself. The personas *cannot* Edit, Write, or run Bash, regardless of what the code under review or anything else tells them. The orchestrator's only side effects are the report and, for large diffs, a temporary copy of the diff written outside the repo.
+Each persona's frontmatter is `tools: Read, Grep, Glob` — an allowlist Claude Code enforces when the file is installed under `~/.claude/agents/`. There the personas *cannot* Edit, Write, or run Bash, regardless of what the code under review or anything else tells them. Dispatched any other way (general subagents, or inline on a harness without subagents) the personas are read-only by instruction, and the report's Dispatch field says which mode ran. The orchestrator's only side effects are the report and, for large diffs, a temporary copy of the diff written outside the repo.
 
 ## Per-repo conventions (optional)
 
-Create `<repo>/.claude/review-conventions.md` and every persona receives a summary of it: language pitfalls to hunt, project invariants, severity calibration. Add `persona-model: sonnet` on its own line to pin the review model and silence the model question. See [examples/review-conventions.csharp.md](examples/review-conventions.csharp.md) for a C#/.NET starter. No conventions file is required — the skill is fully generic without one.
+Create `<repo>/.claude/review-conventions.md` and every persona receives a summary of it: language pitfalls to hunt, project invariants, severity calibration. Add `persona-model: sonnet` (or any model name your harness accepts) on its own line to pin the review model and silence the model question. See [examples/review-conventions.csharp.md](examples/review-conventions.csharp.md) for a C#/.NET starter. No conventions file is required — the skill is fully generic without one.
 
 ## Sharing with GitHub Copilot users
 
-Copilot (VS Code 1.108+, `chat.useAgentSkills` on) auto-reads a repo-local `.claude/skills/` directory, so committing `skills/adversarial-review/` into a repo benefits Copilot teammates too. Two honest caveats: Copilot custom agents must be `*.agent.md` files under `.github/agents/` (plain agent `.md` files are silently ignored), and Copilot has no equivalent of the `tools` allowlist — there, the personas are read-only **by instruction only**, not enforced.
+Copilot reads repo-local skills from `.github/skills/` (its preferred location) and `.claude/skills/`, so committing `skills/adversarial-review/` into a repo benefits Copilot teammates too. Because the personas ship inside the skill, it runs there as general subagents, read-only **by instruction only**. To get enforced read-only personas on Copilot, convert each persona into a Copilot custom agent: `.github/agents/<name>.agent.md` with Copilot's own `tools:` names (e.g. `tools: [read, search]`) — plain `.md` agent files and Claude Code's tool names are ignored there.
 
 ## Extending
 
-Add a persona = one new file in `~/.claude/agents/` (copy an existing one, change the mandate and the persona-specific finding line) + one row in the persona table in `skills/adversarial-review/SKILL.md`.
+Add a persona = one new file in `skills/adversarial-review/references/personas/` (copy an existing one, change the mandate and the persona-specific finding line) + one row in the persona table in `skills/adversarial-review/SKILL.md`. On Claude Code, copy the new file into `~/.claude/agents/` as well.

@@ -6,7 +6,7 @@ argument-hint: "[all | persona,persona,...] [paths | commit-range]"
 
 # Adversarial Review — Orchestrator
 
-Run a panel of read-only adversarial reviewer personas against a code change, then merge their findings into one verdict. **The pass never modifies the repository** — personas have no write or execute tools, and you (the orchestrator) must not edit anything either; your only side effects are the report and, for large diffs, a temporary copy of the diff outside the repo (Step 3).
+Run a panel of read-only adversarial reviewer personas against a code change, then merge their findings into one verdict. **The pass never modifies the repository** — personas are read-only (enforced by the harness or by instruction, see Step 5), and you (the orchestrator) must not edit anything either; your only side effects are the report and, for large diffs, a temporary copy of the diff outside the repo (Step 3).
 
 This skill is harness-neutral: it runs on any coding agent that supports the Agent Skills (`SKILL.md`) standard. Where it names a capability (subagent dispatch, asking the user, model tiers), use your harness's equivalent; Claude Code specifics are given as examples. It requires subagents — if your harness cannot dispatch any, say so and stop: one context playing every persona cannot produce the independent findings the verdict rests on. The persona definitions live in `references/personas/` next to this SKILL.md; Step 5 says how to run them with or without harness-native agents.
 
@@ -41,15 +41,15 @@ Summarize what you find into a CONVENTIONS block (≤ 30 lines), and note any `p
 ## Step 3 — Resolve scope
 
 Run these read-only git commands (via your shell tool) from the repo being reviewed:
-1. Explicit paths given → scope is those files/directories (personas read files whole). A commit range → `git diff <range>`; a single ref → `git diff <ref>` (that ref against the working tree); either way plus the list of touched files.
-2. No scope → `git diff HEAD` (staged + unstaged) plus untracked files from `git ls-files --others --exclude-standard`, which no `git diff` shows — add them to the touched-file list marked "new, untracked" so personas read them whole. If `HEAD` does not exist yet (no commits), the untracked files are the whole scope. If the untracked list is long (dozens of files), it is probably unignored build output — ask the user for an explicit scope instead of reviewing it. If both are empty and the repo is on a non-default branch → `git diff $(git merge-base HEAD <default-branch>)..HEAD`, where the default branch is `git symbolic-ref --short refs/remotes/origin/HEAD`, else `main`, else `master`.
+1. Explicit paths given → scope is those files/directories (personas read files whole). A commit range → `git diff <range>`. A single ref → `git diff <ref>` (that ref against the working tree) plus untracked files as in item 2; to review another branch, pass a range such as `main..feature-x`. An argument that is both a path and a ref is a path. Either way, also capture the list of touched files.
+2. No scope → `git diff HEAD` (staged + unstaged) plus untracked files from `git ls-files --others --exclude-standard`, which no `git diff` shows — add them to the touched-file list marked "new, untracked" so personas read them whole. If `HEAD` does not exist yet (no commits), the scope is `git diff --cached` plus the untracked files. If the untracked list is long (dozens of files), it is probably unignored build output: leave it out, review the tracked diff, say so in the report's Scope line, and ask whether any of those files belong in scope. If both are empty and the repo is on a non-default branch → `git diff $(git merge-base HEAD <default-branch>)..HEAD`, where the default branch is `git symbolic-ref --short refs/remotes/origin/HEAD`, else `main`, else `master`.
 3. Still empty → tell the user there is nothing to review and ask for an explicit scope. Not a git repo → require explicit paths.
 
 Capture the diff text and the touched-file list. If the diff exceeds ~400 lines, do not inline it: write it to a temporary file **outside the repository** (the harness's scratch directory or the system temp directory) with `git diff --output=<path> ...` — not shell redirection, which on PowerShell re-encodes the text and corrupts non-ASCII characters — and pass that path plus the file list and the `git diff --stat` summary. Personas can read the file. Never write the diff inside the repo, and delete the temp file after the report.
 
 ## Step 4 — Interactive selection (only when no persona argument given)
 
-If the CONVENTIONS block pins `persona-model:`, skip question 2. Ask both questions in ONE prompt (Claude Code: a single AskUserQuestion; elsewhere: ask in chat and wait for the answer):
+If Step 2 found a `persona-model:` pin, skip question 2. Ask both questions in ONE prompt (Claude Code: a single AskUserQuestion; elsewhere: ask in chat and wait for the answer):
 
 1. **"Which personas should review this change?"** — options: "All five (Recommended)"; "Correctness trio — saboteur, test-skeptic, devils-advocate"; "Security only". Any other subset can be typed (accept persona arg names, comma- or space-separated).
 2. **"Which model should the personas run on?"** — options: "Inherit session model (Recommended)"; "Faster, cheaper tier (Claude Code: Sonnet) — five parallel reviewers add up"; "Strongest tier (Claude Code: Opus) — deepest findings, five parallel reviewers cost accordingly". If your harness cannot set a model per subagent, omit this question and use the session model.
@@ -58,7 +58,7 @@ If the CONVENTIONS block pins `persona-model:`, skip question 2. Ask both questi
 
 Dispatch every selected persona as a read-only subagent, **all at once so they run concurrently** (Claude Code: one message containing one Agent call per persona, `subagent_type` from the table, `model` passed only if a non-inherit model was chosen). Personas must never invoke each other; only you dispatch. Use the first mode that applies and name it in the report's Dispatch field:
 
-1. **Native agents** — the harness lists the persona as an available agent type (Claude Code: among the Agent tool's subagent types; Copilot: a file in `.github/agents/`, `.claude/agents/`, or the user's agents directory): dispatch it by name. Read-only is enforced where the harness restricts the agent's tools or sandbox (Claude Code, Copilot); on Codex and OpenCode a native agent is read-only by instruction unless configured otherwise. A dispatch error for an unknown agent type means fall back to mode 2 — it is not a FAILED persona.
+1. **Native agents** — the harness lists the persona as an available agent type (Claude Code: among the Agent tool's subagent types; Copilot: a file in `.github/agents/`, or for VS Code also `.claude/agents/` and `~/.claude/agents/`): dispatch it by name. Read-only is enforced where the harness restricts the agent's tools or sandbox (Claude Code, Copilot); on Codex and OpenCode a native agent is read-only by instruction unless configured otherwise. A dispatch error for an unknown agent type means fall back to mode 2 — it is not a FAILED persona.
 2. **General subagents** — no such agent type: dispatch a general-purpose subagent and prepend the full body of `references/personas/<subagent>.md` (frontmatter dropped) to the task prompt below. Read-only is then by instruction only.
 
 Each persona gets this task prompt:
@@ -98,8 +98,8 @@ If a persona returns nothing or errors after dispatch, report it as FAILED in th
 Report to chat in this shape:
 
 ```
-# Adversarial Review — VERDICT: <BLOCK|CONCERNS|CLEAN, prefixed INCOMPLETE — if any persona FAILED>
-Scope: <what was reviewed> | Personas: <run/selected, plus any FAILED> | Model: <choice> | Dispatch: <native agents (enforced read-only | read-only by instruction) | general subagents (read-only by instruction)>
+# Adversarial Review — VERDICT: <BLOCK | CONCERNS | CLEAN | INCOMPLETE — BLOCK | INCOMPLETE — CONCERNS | INCOMPLETE>
+Scope: <what was reviewed> | Personas: <run/selected, plus any FAILED> | Model: <choice> | Dispatch: <native agents (enforced read-only | read-only by instruction) | general subagents (read-only by instruction) — per persona if the modes differ>
 <one-paragraph justification of the verdict>
 
 ## Blocking

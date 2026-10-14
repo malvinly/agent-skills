@@ -1,6 +1,6 @@
 # adversarial-review
 
-Adversarial multi-persona code review, built for Claude Code and portable to any harness that supports Agent Skills. Five hostile reviewer personas — each with a separate mandate and **no ability to modify anything** — attack a change in parallel. Their findings are merged, cross-persona overlap promotes severity, and the pass ends in a single **BLOCK / CONCERNS / CLEAN** verdict.
+Adversarial multi-persona code review, built for Claude Code and portable to any harness that supports Agent Skills. Five hostile reviewer personas — each with a separate mandate and **no ability to modify anything** — attack a change in parallel. Their findings are merged, cross-persona overlap promotes severity, and the pass ends in a single **BLOCK / CONCERNS / CLEAN** verdict (prefixed **INCOMPLETE** when a persona failed to run).
 
 Plain markdown files only. No plugin runtime, no npm packages, no second CLI — nothing to route through an internal feed.
 
@@ -68,7 +68,7 @@ Verify: rg -n "INSERT INTO aa_rows VALUES" src/db.py
 - **Epistemic label:** `confirmed` (traced in code) / `suspected` (one check from certain) / `speculative` (worth a human look). Labels are honest — the report never upgrades a suspicion to a fact.
 - **Verify:** a read-only command you can run to see the evidence yourself.
 - **Promotion:** when 2+ personas independently flag the same code, severity is promoted one level. Independent overlap is signal.
-- **Verdict:** BLOCK (any P0 or promoted P1+) / CONCERNS (any P1–P2) / CLEAN.
+- **Verdict:** BLOCK (any P0 or promoted P1+) / CONCERNS (any P1–P2) / CLEAN. If any persona FAILED, the verdict is prefixed INCOMPLETE and is never CLEAN.
 
 ## Read-only, enforced where possible
 
@@ -80,8 +80,8 @@ Create `<repo>/.claude/review-conventions.md` and every persona receives a summa
 
 ## Sharing with GitHub Copilot users
 
-Copilot reads repo-local skills from `.github/skills/`, `.claude/skills/`, and `.agents/skills/`, so committing `skills/adversarial-review/` into a repo benefits Copilot teammates too. The persona files are also valid Copilot custom agents as shipped: Copilot detects plain `.md` files in `.github/agents/` (VS Code also reads `.claude/agents/` and `~/.claude/agents/`) and accepts `Read`, `Grep`, and `Glob` as aliases of its own read and search tools, so copying `references/personas/*.md` into `.github/agents/` gives teammates enforced read-only personas. Delete the `model: inherit` line in those copies — Copilot documents `model` as a model name, not `inherit`.
+Copilot reads repo-local skills from `.github/skills/`, `.claude/skills/`, and `.agents/skills/`, so committing `skills/adversarial-review/` into a repo benefits Copilot teammates too. The persona files are also valid Copilot custom agents as shipped: Copilot detects plain `.md` files in `.github/agents/` (VS Code also reads `.claude/agents/` and `~/.claude/agents/`) and accepts `Read`, `Grep`, and `Glob` as aliases of its own read and search tools, so copying `references/personas/*.md` into `.github/agents/` gives teammates enforced read-only personas. Copilot does not document `inherit` as a `model` value, so delete that line in those copies to be safe — without it, Copilot uses the model currently selected in its picker.
 
 ## Extending
 
-Add a persona = one new file in `skills/adversarial-review/references/personas/` (copy an existing one, change the mandate and the persona-specific finding line) + one row in the persona table in `skills/adversarial-review/SKILL.md`. Three names must match exactly: the file name, the frontmatter `name:`, and the table's `subagent` column — native dispatch uses the name, general-subagent dispatch uses the file. Update the persona count where it is spelled out ("Five" in the SKILL.md description, "All five" in the selection prompt, and the table above). On Claude Code, copy the new file into `~/.claude/agents/` as well.
+Add a persona = one new file in `skills/adversarial-review/references/personas/` (copy an existing one, change the mandate and the persona-specific finding line) + one row in the persona table in `skills/adversarial-review/SKILL.md`. Three names must match exactly: the file name, the frontmatter `name:`, and the table's `subagent` column — native dispatch uses the name, general-subagent dispatch uses the file. Search `SKILL.md` and this README for "five" and update every hit, plus the table above. On Claude Code, copy the new file into `~/.claude/agents/` as well.

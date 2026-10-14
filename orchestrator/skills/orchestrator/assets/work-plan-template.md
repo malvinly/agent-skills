@@ -1,7 +1,7 @@
 # Work plan: {short title of the overall change}
 
 Source: {"synthesized from conversation on YYYY-MM-DD" or path of the original plan}
-Branch: {branch name} · Base commit: {git rev-parse HEAD at run start} · Commit policy: {e.g. single commit at end}
+Branch: {branch name} · Base commit: {HEAD at first start — never refreshed on resume; `none` if no commits yet} · Commit policy: {e.g. single commit at end}
 Full verification: `{command run once after all tasks, e.g. build + full test suite}` → {expected result}
 
 ## Goal

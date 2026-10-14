@@ -4,12 +4,12 @@ Run this yourself, in the main session, for every completed task. Never delegate
 
 ## 1. Verify independently (before reading anything else)
 
-- [ ] Read the actual change — `git status`, then `git diff` (unstaged only: earlier approved tasks are already staged, so this shows just this task's work; for tasks run in parallel, narrow it with `git diff -- <task files>`), and open newly created (untracked) files in full, since `git diff` does not show them. Never settle for the subagent's summary. If the unstaged diff is empty after a `DONE` report, check `git diff --cached --stat` and `git stash list` — the subagent may have staged or stashed its work, which is itself a problem to send back.
+- [ ] Read the actual change — `git status`, then `git diff` (unstaged only: earlier approved tasks are already staged, so this shows just this task's work; for tasks run in parallel, narrow it with `git diff -- <task files>`), and open newly created (untracked) files in full, since `git diff` does not show them. Never settle for the subagent's summary. If the unstaged diff is empty after a `DONE` report, the subagent probably staged or stashed its work despite the prohibition (`git stash list`; `git diff --cached --stat -- <task files>`). Do not unstage anything — that would also drop earlier approved hunks in shared files. Review `git diff --cached -- <task files>` for this task instead, and record the incident as a discovery so later dispatch prompts stress the rule.
 - [ ] Re-run the task's verification command yourself (e.g. `dotnet build MyApp.sln`) and confirm the expected result. A subagent's "verification passed" is a claim, not evidence.
 
 ## 2. Spec compliance (before code quality)
 
-- [ ] Only the task's stated files were touched: every unstaged or untracked path in `git status` is on this task's file list, on the list of a sibling task still in flight (parallel dispatch), or is the plan file. Anything else → stop and ask the user.
+- [ ] Only files in scope were touched: every unstaged or untracked path in `git status` is on this task's file list, on the list of a sibling task in the same parallel batch, is the plan file, or is a pre-existing dirty path the user waived at startup. Anything else → stop and ask the user.
 - [ ] The diff does exactly what the task described — no more, no less. No drive-by refactoring, no unrequested features, no "while I was in there" edits.
 - [ ] The verification result matches the expected result written in the task.
 

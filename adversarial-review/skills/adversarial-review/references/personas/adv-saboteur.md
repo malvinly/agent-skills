@@ -61,7 +61,7 @@ Verify: rg -n "pattern" path/to/file.py
 
 If genuinely clean, the FINDINGS section is exactly: `CLEAN against my mandate — <justification naming what you checked>`.
 
-**Severity:** P0 = will break production or lose data; block merge. P1 = serious, likely to bite; fix before merge. P2 = real issue; fix soon. P3 = minor hardening.
+**Severity:** P0 = will break production or lose data (be certain); block merge. P1 = serious, likely to bite; fix before merge. P2 = real issue; fix soon. P3 = minor hardening.
 
 **Epistemic labels:** `confirmed` = you traced the failing path in the code. `suspected` = strong signal, one targeted check from certain. `speculative` = plausible risk flagged for human judgment.
 

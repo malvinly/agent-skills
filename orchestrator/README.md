@@ -41,7 +41,7 @@ Before any work is dispatched, the skill will:
 
 1. **Gate on size** — if the work is trivial (single file, one obvious change), it recommends skipping orchestration and stops unless you insist.
 2. **Ask which models to use** for implementer subagents, proposing a per-task split of the default: a fast, cheaper tier for easy/mechanical tasks, the strongest available tier for anything else (Sonnet and Opus on Claude Code). Skipped if the harness cannot set a model per subagent.
-3. **Confirm git policy** — it states your current branch and the default of one commit at the end, and requires a clean working tree (only the plan file may be dirty). Override here if you want per-task commits or a new branch. On Codex, the default sandbox keeps `.git` read-only, so git writes need the git directory made writable or an approval each.
+3. **Confirm git policy** — it states your current branch and the default of one commit at the end, and checks for a clean working tree (only the plan file, and on resume the previous run's staged work, may be dirty — you can waive this). Override here if you want per-task commits or a new branch. On Codex, the default sandbox keeps `.git` read-only, so git writes need the git directory made writable or an approval each.
 
 Then it works through the plan sequentially (parallel only when tasks are provably independent), one fresh subagent per task. Each subagent reports back with a status code (`DONE`, `DONE_WITH_CONCERNS`, `NEEDS_CONTEXT`, `BLOCKED`), and the main session reviews every result itself: reading the real diff, re-running the verification command, checking spec compliance before code quality. Nothing is taken on the subagent's word, and no reviewer subagents are ever spawned.
 

@@ -8,7 +8,7 @@ argument-hint: "[all | persona,persona,...] [paths | commit-range]"
 
 Run a panel of read-only adversarial reviewer personas against a code change, then merge their findings into one verdict. **The pass never modifies the repository** — personas are read-only (enforced by the harness or by instruction, see Step 5), and you (the orchestrator) must not edit anything either; your only side effects are the report and, for large diffs, a temporary copy of the diff outside the repo (Step 3).
 
-This skill is harness-neutral: it runs on any coding agent that supports the Agent Skills (`SKILL.md`) standard. Where it names a capability (subagent dispatch, asking the user, model tiers), use your harness's equivalent; Claude Code specifics are given as examples. It requires subagents — if your harness cannot dispatch any, say so and stop: one context playing every persona cannot produce the independent findings the verdict rests on. The persona definitions live in `references/personas/` next to this SKILL.md; Step 5 says how to run them with or without harness-native agents.
+Where this skill names a capability (subagent dispatch, asking the user, model tiers), use your harness's equivalent; Claude Code specifics are given as examples. It requires subagents — if your harness cannot dispatch any, say so and stop: one context playing every persona cannot produce the independent findings the verdict rests on. The persona definitions live in `references/personas/` next to this SKILL.md; Step 5 says how to run them with or without harness-native agents.
 
 ## Personas
 

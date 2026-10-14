@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 **Usage:** invoke `/orchestrator` once a plan exists — either in conversation (e.g. the output of a planning or interview skill) or as a file (`/orchestrator docs/plan.md`). The main session orchestrates, reviews, and approves; fresh subagents implement.
 
-This skill is harness-neutral: it runs on any coding agent that supports the Agent Skills (`SKILL.md`) standard. Where it names a capability (subagents, model tiers, asking the user), use your harness's equivalent; Claude Code specifics are given as examples. It requires subagents — if your harness cannot dispatch any, say so and stop rather than implementing the plan yourself under this skill's name. Supporting files live in `references/` and `assets/` next to this SKILL.md; read each when the step that needs it is reached.
+Where this skill names a capability (subagents, model tiers, asking the user), use your harness's equivalent; Claude Code specifics are given as examples. It requires subagents — if your harness cannot dispatch any, say so and stop rather than implementing the plan yourself under this skill's name. Supporting files live in `references/` and `assets/` next to this SKILL.md; read each when the step that needs it is reached.
 
 ## Role split
 

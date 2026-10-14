@@ -36,11 +36,11 @@ Before any work is dispatched, the skill will:
 
 Then it works through the plan sequentially (parallel only when tasks are provably independent), one fresh subagent per task. Each subagent reports back with a status code (`DONE`, `DONE_WITH_CONCERNS`, `NEEDS_CONTEXT`, `BLOCKED`), and the main session reviews every result itself: reading the real diff, re-running the verification command, checking spec compliance before code quality. Nothing is taken on the subagent's word, and no reviewer subagents are ever spawned.
 
-After all tasks pass review, it reviews the whole cumulative diff, runs full verification (e.g. `dotnet build && dotnet test`), makes the single commit, and — if it created `work-plan.md` — deletes it.
+Approved work is staged after each review, so every task is reviewed as an isolated diff and only staged files are ever committed (`work-plan.md` never is). After all tasks pass review, it reviews the whole cumulative diff, runs the plan's full verification command, makes the single commit, and — if it created `work-plan.md` — deletes it.
 
 ## Resuming an interrupted run
 
-If a run aborts or blocks, `work-plan.md` is left in place with completed tasks checked off; together with git history it is the resume state. Re-invoke with `/orchestrator work-plan.md` to pick up where it stopped.
+If a run aborts or blocks, `work-plan.md` is left in place with completed tasks checked off; together with the staged and committed work it is the resume state. Re-invoke with `/orchestrator work-plan.md` to pick up where it stopped.
 
 ## When not to use it
 

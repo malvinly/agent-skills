@@ -6,7 +6,7 @@ argument-hint: "[all | persona,persona,...] [paths | commit-range]"
 
 # Adversarial Review — Orchestrator
 
-Run a panel of read-only adversarial reviewer personas against a code change, then merge their findings into one verdict. **The pass never modifies the repository** — personas have no write or execute tools, and you (the orchestrator) must not edit anything either; your only side effect is the report.
+Run a panel of read-only adversarial reviewer personas against a code change, then merge their findings into one verdict. **The pass never modifies the repository** — personas have no write or execute tools, and you (the orchestrator) must not edit anything either; your only side effects are the report and, for large diffs, a temporary copy of the diff outside the repo (Step 3).
 
 ## Personas
 
@@ -39,10 +39,10 @@ Read the conventions file first (Step 4) — if it pins `persona-model:`, skip q
 
 Run these read-only git commands (Bash) from the repo being reviewed:
 1. Explicit paths given → scope is those files/directories (personas read files whole). A commit range → `git diff <range>` plus the list of touched files.
-2. No scope → `git diff HEAD` (staged + unstaged). If empty and the repo is on a non-default branch → `git diff $(git merge-base HEAD <default-branch>)..HEAD`.
+2. No scope → `git diff HEAD` (staged + unstaged) plus untracked files from `git ls-files --others --exclude-standard`, which no `git diff` shows — add them to the touched-file list marked "new, untracked" so personas read them whole. If both are empty and the repo is on a non-default branch → `git diff $(git merge-base HEAD <default-branch>)..HEAD`.
 3. Still empty → tell the user there is nothing to review and ask for an explicit scope. Not a git repo → require explicit paths.
 
-Capture the diff text and the touched-file list. If the diff exceeds ~400 lines, pass only the file list plus a one-line note of what changed per file (from `git diff --stat`).
+Capture the diff text and the touched-file list. If the diff exceeds ~400 lines, do not inline it: write it to a temporary file **outside the repository** (the harness's scratch directory or the system temp directory) and pass that path plus the file list and the `git diff --stat` summary. Personas can Read the file. Never write the diff inside the repo.
 
 ## Step 4 — Conventions pickup
 
@@ -60,7 +60,7 @@ Dispatch every selected persona as a subagent via the Agent tool — **all calls
 Adversarial-review pass. Review ONLY against your persona's mandate.
 
 SCOPE (review this change):
-<diff text, or file list with per-file change notes>
+<diff text — or, for large diffs, the path of the saved diff file plus the file list with per-file change notes>
 Repo root: <path>. Read the full files for context — the diff alone is not enough.
 Cite repo-relative paths in findings.
 

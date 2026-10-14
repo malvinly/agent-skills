@@ -61,7 +61,7 @@ Verify: rg -n "INSERT INTO aa_rows VALUES" src/db.py
 
 ## Read-only, enforced
 
-Each persona's frontmatter is `tools: Read, Grep, Glob` — an allowlist enforced by Claude Code itself. The personas *cannot* Edit, Write, or run Bash, regardless of what the code under review or anything else tells them. The orchestrator's only side effect is the report.
+Each persona's frontmatter is `tools: Read, Grep, Glob` — an allowlist enforced by Claude Code itself. The personas *cannot* Edit, Write, or run Bash, regardless of what the code under review or anything else tells them. The orchestrator's only side effects are the report and, for large diffs, a temporary copy of the diff written outside the repo.
 
 ## Per-repo conventions (optional)
 

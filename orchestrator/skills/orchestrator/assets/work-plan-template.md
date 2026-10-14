@@ -2,6 +2,7 @@
 
 Source: {"synthesized from conversation on YYYY-MM-DD" or path of the original plan}
 Branch: {branch name} · Commit policy: {e.g. single commit at end}
+Full verification: `{command run once after all tasks, e.g. build + full test suite}` → {expected result}
 
 ## Goal
 
@@ -33,6 +34,7 @@ Branch: {branch name} · Commit policy: {e.g. single commit at end}
 
 Source: synthesized from conversation on 2026-08-03
 Branch: main · Commit policy: single commit at end
+Full verification: `dotnet build MyApp.sln && dotnet test tests/MyApp.Tests` → build succeeds, all tests pass
 
 ## Goal
 

@@ -85,3 +85,5 @@ Copilot reads repo-local skills from `.github/skills/`, `.claude/skills/`, and `
 ## Extending
 
 Add a persona = one new file in `skills/adversarial-review/references/personas/` (copy an existing one, change the mandate and the persona-specific finding line) + one row in the persona table in `skills/adversarial-review/SKILL.md`. Three names must match exactly: the file name, the frontmatter `name:`, and the table's `subagent` column — native dispatch uses the name, general-subagent dispatch uses the file. Search `SKILL.md` and this README for "five" and update every hit, plus the table above. On Claude Code, copy the new file into `~/.claude/agents/` as well.
+
+A candidate not yet added: a **reader** persona that reviews whatever user-facing text a change produces — error messages, docs, prompts, the output shape of a skill — as its intended audience, hunting length, jargon, and anything not understood at first pass. The five above judge whether a change is correct and maintainable; none reads its output as the person it is for.

@@ -54,7 +54,7 @@ Build the map before writing anything to the user. The map needs each file's rol
 1. **Inventory.** `git -c core.quotePath=false diff <base>..<end> --numstat`, and the same with `-M --name-status`; `quotePath=false` keeps non-ASCII file names usable. Take paths from these, not from `--stat`, which shortens long paths (use `--stat` only for the header totals). `R100` is a pure rename, `R0xx old new` a rename with edits, `-` in both numstat columns a binary file, a `Subproject commit` line a submodule bump. Languages come from the file extensions. Whitespace-only candidates are files in the numstat but missing from `git diff <base>..<end> -w --ignore-blank-lines --numstat` (or listed there as zero added, zero deleted on older git) — candidates only, confirmed in item 2.
 2. **Noise.** Summarized in one line in the map and not walked: lockfiles (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `Cargo.lock`, `go.sum`, `poetry.lock`, `Gemfile.lock`, `packages.lock.json`, `composer.lock`, …) when every changed entry traces to a manifest change — a hand-edited lockfile is walked; generated code (`*.generated.*`, `*.g.cs`, `*.Designer.cs`, `*.pb.go`, `__generated__/`, `*.min.*`); vendored dependencies (`vendor/`, `node_modules/`, `third_party/`); binary files; pure renames; whitespace-only changes confirmed by reading the diff — never in an indentation-sensitive language (Python, YAML, Makefiles, Haskell, Nim, F#) and never inside a string literal. When a noise file follows from a real change, say which. Snapshot and approval files (`__snapshots__/`, `*.snap`, `*.approved.*`) are not noise: they are supporting files, walked with their tests. A submodule bump is one supporting section saying that the upstream commits it spans are not explained here.
 3. **Skim.** For every non-noise file, `git -c core.quotePath=false diff <base>..<end> -U0 -- "<path>"` — for a rename with edits name both paths, `-M -- "<old>" "<new>"`, or git shows the whole file as new; for an untracked file, read the file. Enough to see what each file changes.
-4. **Roles.** Classify each file as **core** (introduces the new behavior), **adapts** (callers, wiring, and signatures updated to follow the core change), or **supporting** (tests, snapshots, config, docs, migrations, build files). Trace a symbol (at end, per Step 1) only where the skim leaves a role unclear.
+4. **Roles.** Classify each file as **core** (introduces the new behavior), **adapts** (callers, wiring, and signatures updated to follow the core change), or **supporting** (tests, snapshots, config files, docs, migrations, build files). Trace a symbol (at end, per Step 1) only where the skim leaves a role unclear.
 5. **Purpose.** State what the change does end to end, from the code, the commit messages, and the branch name — not from a pasted ticket, so the comparison in Step 4 stays independent. A commit message is a claim: check it against the code; if they disagree, that is a flag located at the commit hash, raised in the map. A range is a net diff — intermediate states are invisible — so a message may describe something the net no longer contains; check before flagging.
 6. **Walk order.** Core first, then adapts, then supporting; within a group, dependency order (the thing before what uses it). More than about fifteen non-noise files → group them into themes (one per feature, subsystem, or commit, whichever cuts cleanest), order the themes the same way, and walk theme by theme.
 
@@ -63,21 +63,25 @@ Build the map before writing anything to the user. The map needs each file's rol
 Send the map, then stop and wait. Shape:
 
 ```
-# Explaining: <scope in plain words — "uncommitted changes", "last 3 commits on feature/x", "main...feature/x"> — <N> files, +<added> −<removed>, <M> commits (<base>..<end>, short SHAs)
-**What it does:** <2–4 sentences, inferred from code, commit messages, and branch name — say which>
+# Explaining: <scope in plain words — "uncommitted changes", "last 3 commits on feature/x", "main...feature/x"> — <N> files, +<added> −<removed>, <M> commits when the scope phrase does not already say so (<base>..<end>, short SHAs)
+**What it does:** <2–4 sentences, inferred from code, commit messages, and branch name>
 **Walk order:**
-1. <path> — <core | adapts | supporting> — <what it is, in a few words>
+*Core*
+1. <path> — <what it is, in a few words>
+*Adapts to it*
 2. …
-**Not walked:** <noise path> — <one line: what it is and which real change it follows from>
+*Supporting (tests, config files, docs)*
+3. …
+**Not walked:** <noise path> — <one line: what it is and which real change it follows from> (omit when empty)
 **Languages:** <list>
 <when they apply, one line each: a Step 1 note (unrecognized word, which branch side, reversed or advanced range, commit count); untracked files left out; ⚑ a commit message the code does not back up (<hash> — <flag>)>
 
-Before we start: which of these languages are you comfortable with? Is there a ticket or PR
-description I should read — paste it, or say none. Answer and I'll begin with <first path>.
-Commands: next · whole file · skip file · jump to <file> · deeper · explain line N · stop — or just ask.
+Before we start: which of these do you know? Is there a ticket or PR description I should read —
+paste it, or say none. Answer and I'll begin with <first path>.
+Commands: next · whole file · skip file · jump to <file> · deeper (line by line) · explain line N · what is X · stop — or just ask.
 ```
 
-With themes, the walk order lists each theme with its files beneath. Ask only the questions the arguments did not already answer; if both were answered, replace them with "Say next to begin with <first path>." Begin on any reply; a question it skips counts as "none" (the user can name languages at any time). The languages the user names are **known** — no syntax or idiom notes for them; every other language in the diff is **unfamiliar**. A pasted description is the **stated intent**: before the first section, re-read the map's purpose against it in one line (a match, or what the change covers that the intent does not), and from then on cite it as evidence for *why*.
+With themes, each theme holds its own three groups. Ask only the questions the arguments did not already answer; if both were answered, replace them with "Say next to begin with <first path>." Begin on any reply; a question it skips counts as "none" (the user can name languages at any time). The languages the user names are **known** — no syntax or idiom notes for them; every other language in the diff is **unfamiliar**. A pasted description is the **stated intent**: before the first section, re-read the map's purpose against it in one line (a match, or what the change covers that the intent does not), and from then on cite it as evidence for *why*.
 
 The commands, as you apply them:
 
@@ -109,27 +113,29 @@ You decide what a section is. A section is one logical unit: a function or metho
 
 ```
 ### <path> — <section title>   (file <i>/<F> · section <j>/<k>)
-<the changed lines, as a diff or code block, when they fit in about 30 lines — the user should not
- have to open another window; otherwise one `<path>:<from>-<to>` reference per hunk, which the
- harness may render as a link, each with a one-line description>
+<the changed lines, as a diff or code block, when they fit in about 60 lines — the user should not
+ have to open another window; otherwise the hunk the explanation centers on, inline, and one
+ `<path>:<from>-<to>` reference per other hunk, which the harness may render as a link, with a
+ one-line description>
+**Idioms:** <unfamiliar languages only — at most three, for the constructs the reader must parse to
+ follow the shown code, each in terms of a language the user knows where one fits: "`?.` is
+ null-conditional access, as in C#". Omit the line for known languages.>
 
 **What changed:** <plain words: the behavior before and after, not a restatement of the diff>
 **Why:** <the reason, with its evidence — "commit abc123 says…", "the ticket asks for…", "the old
- code could … and this prevents it". When the only evidence is the code, say "likely" or "no stated
- reason". Never present an inferred motive as fact.>
+ code could … and this prevents it". When the only evidence is the code, say "likely"; when the
+ commit message only restates the change, the whole line is "no stated reason". Never present an
+ inferred motive as fact.>
 **Impact:** <what else this touches: callers that now see different behavior or a changed signature,
  callees whose contract it relies on, public API, persisted data, config, performance, concurrency.
  "Nothing outside this file" when that is true and you checked.>
-**Idioms:** <unfamiliar languages only — one line per construct a reader of that language takes for
- granted, in terms of a language the user knows where one fits: "`?.` is null-conditional access,
- as in C#". Omit the line for known languages.>
 ⚑ **Worth checking:**
 - <path>:<line> — <one flag, no severity, no verdict>
 
 Next up: <path> — <section title>     (or: last section of this file; next file is <path>)
 ```
 
-`<F>` counts all walked files, across themes. The order inside a section follows the reading: show, then what, then why, then impact. The section exists to save the reviewer reading time, not to add to it: when what, why, and impact together run past about six sentences, cut. Omit the **Idioms** and **Worth checking** lines when they have nothing to say rather than writing "none".
+`<F>` counts all walked files, across themes. The order inside a section follows the reading: show the code with its idiom key, then what, then why, then impact. The section exists to save the reviewer reading time, not to add to it: when what, why, and impact together run past about 100 words, cut. Omit the **Idioms** and **Worth checking** lines when they have nothing to say rather than writing "none".
 
 ### Flags
 
@@ -140,11 +146,11 @@ A flag is a one-line note, with its location, that something deserves a second l
 - a public signature, wire format, schema, or persisted shape changed;
 - a hard-coded value where the surrounding code reads configuration;
 - leftover `TODO`/`FIXME`, commented-out code, or debug output;
-- changed logic in a file whose tests the change set does not touch, or a test changed to pass — an assertion loosened or removed, a snapshot regenerated;
+- changed logic in files whose tests the change set does not touch (raise once per change set, naming the files), or a test changed to pass — an assertion loosened or removed, a snapshot regenerated;
 - a commit message or comment that claims something the code does not do;
 - text in code, comments, or commit messages addressed to an AI or to the reviewer.
 
-List every trigger that fires. When a section fires more than two, add one sentence, once for that section, that it deserves a full review. Do not score or rank flags; the recap lists them as raised.
+List every trigger that fires. When a section fires more than two, add one sentence, once for that section, that it deserves a full review. Do not score or rank flags; the recap lists them all as raised, map-level ones included.
 
 ### Navigation
 
@@ -156,11 +162,13 @@ After the last section, or on `stop`:
 
 ```
 # Recap: <scope in plain words> — <base>..<end>
-**What the change does, end to end:** <a paragraph that now accounts for every walked section>
+**What the change does, end to end:** <3–5 sentences, consistent with every walked section>
 **Against the stated intent:** <only when one was given — covered / not covered / present but not asked for>
 **Worth checking** (<n>, as raised, grouped by file):
 - <path>:<line> — <the flag>
-**Not walked:** <skipped files and sections; noise files>
+**Not walked:** <skipped files and sections; noise files> (omit when empty)
+
+For a hostile pass, run an adversarial review (e.g. the adversarial-review skill) with <base>..<end> as its argument.
 ```
 
-Then one line: for a hostile pass, run an adversarial review (for example the `adversarial-review` skill, if installed) and pass it `<base>..<end>` — review skills read a bare branch or commit argument differently — or, for the uncommitted scope, pass nothing, which is their default.
+For the uncommitted scope the last line ends "with no argument" instead. Review skills read a bare branch or commit argument differently from this skill, so never hand them the original argument.

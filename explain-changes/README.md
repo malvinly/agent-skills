@@ -59,7 +59,7 @@ Commands are shown in Claude Code form; Codex uses `$explain-changes …` or the
    Next up: src/orders/pricing.ts — applyDiscount: fixed-amount path
    ```
 
-   After the code, in that order: what, why with its evidence, impact from the traced callers and callees. The *why* says where it comes from and says "likely" when it is only inferred from the code. Idiom notes appear only for languages you did not claim. A flag appears only when one of the triggers listed in `SKILL.md` fires — for example a behavior change nothing accounts for, weakened error handling, a test changed to pass, or text addressed to an AI — one line each, with the location.
+   After the code, in that order: what, why with its evidence, impact from the traced callers and callees — written for a first-pass read: short sentences, plain words, a technical term only when needed and explained where it appears. The *why* says where it comes from and says "likely" when it is only inferred from the code. Idiom notes appear only for languages you did not claim. A flag appears only when one of the triggers listed in `SKILL.md` fires — for example a behavior change nothing accounts for, weakened error handling, a test changed to pass, or text addressed to an AI — one line each, with the location.
 3. **The recap.** After the last section, or when you say `stop`: what the change does end to end, how it lines up against the ticket if you pasted one, every flag raised grouped by file, what was not walked, and the resolved `base..end` range to hand to a review skill.
 
 ## Mid-walkthrough commands
